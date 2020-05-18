@@ -4,12 +4,10 @@
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
-#define TYP_T 1 //term type
-#define TYP_O 2 //operator type
 
 using namespace std;
 
-const string all_operators = "!,+-*/^";
+
 
 class Expr {
    public:
@@ -39,6 +37,11 @@ class Expr {
       //methods
       void Set(){
         this->search1();
+        this->search2();
+        this->search3();
+        this->search4("^");
+        this->search4("*/");
+        this->search4("+-");
       };
       void search1(){
         //search for terms and brackets
@@ -52,7 +55,6 @@ class Expr {
           switch (*it){
             case ')':
             break;
-            case '!':
             case '+':
             case '-':
             case '*':
@@ -100,23 +102,115 @@ class Expr {
             cur_b_lvl--;
           }
 
+          if(it == expr.end()-1){
+            //at the end of the test_string
+            if(cur_b_lvl!=0)
+            throw std::invalid_argument( "unbalanced brackets" );
+            if(is_term){
+              term_end = it+1;
+              terms.push_back(Expr(string(term_start,term_end),term_start-expr.begin(), term_end-expr.begin(),true));
+              is_term = false;
+            }
+          }
+
         }
-      };
-/*
+      };//searching for terms, and create sub expr for brackets
+
       void search2(){
         //search for term term
-        string::iterator it = start;
-        vector<Expr>::iterator it_vec = this->terms.begin();
-        string::iterator it_term ;
-        for(; it!= end;){
-          if(it == it_vec->start-1){
-            //we are at the bracket (
+        bool n_term =false;
 
+        //expression validity check
+        int n_term_consecutive = 0;
+        string term_id = "()";
+        for(vector<Expr>::iterator it = terms.begin(); it!= terms.end(); it++){
+          if(it->fn.compare(term_id) ==0)
+            n_term_consecutive ++;
+          else
+            n_term_consecutive = 0;
+          if (n_term_consecutive==3)
+          throw std::invalid_argument( "Invalid expression, consecutive terms without operator" );
+        }
+        //group terms
+        for(vector<Expr>::iterator it = terms.begin(); it <terms.end()-1; it++){
+          if(it->fn.compare("()") ==0 && (it+1)->fn.compare("()") ==0){
+            it->add_to_fn(*(it+1));
+            terms.erase(it+1,it+2);
+          }this->search4("");
+        }
+      }
+
+      void search3(){
+        //search for operators
+        int n_op_consecutive = 0;// cannot have 2 operators consecutive
+        string all_operators = "+-*/^";
+        std::size_t op_id1;
+        std::size_t op_id2;
+        std::size_t op_id3;
+        //search for dual operators like 8*-7
+        for(vector<Expr>::iterator it = terms.begin(); it< terms.end()-2; it++){
+          op_id1 = all_operators.find(it->fn);
+          op_id2 = all_operators.find((it+1)->fn);
+          op_id3 = all_operators.find((it+2)->fn);
+
+          if (it == terms.begin() && op_id1!= string::npos){
+            if(all_operators.at(op_id1) !='+' && all_operators.at(op_id1) !='-' )
+            throw std::invalid_argument( "Invalid starting operator" );
+            if(op_id2!=string::npos)
+            throw std::invalid_argument( "Cannot start with two operators" );
+            (it)->cast_op(*(it+1));
+            terms.erase(it+1,it+2);
+            it = it +1;
+          }
+          else if(op_id1!= string::npos && op_id2!=string::npos){
+            //this is an operator
+            if(op_id3 != string::npos)
+            throw std::invalid_argument( "Invalid expression, consecutive operators" );
+            if(all_operators.at(op_id2) !='+' && all_operators.at(op_id2) !='-' ){
+
+            throw std::invalid_argument( "Invalid expression, invalid consecutive operators" );
+            }
+            (it+1)->cast_op(*(it+2));
+            terms.erase(it+2,it+3);
+            it = it +1;
           }
         }
-        all_operators.find()
+
       }
-      */
+
+      void search4(string op){
+        //search for operators op
+        std::size_t op_id;
+        for(vector<Expr>::iterator it = terms.begin()+1; it< terms.end()-1; it++){
+          op_id = op.find(it->fn);
+          if(op_id!= string::npos){
+            //this is an operator
+            (it)->add_to_fn(*(it-1),*(it+1));//add to current element
+            it = terms.erase(it-1,it);//erase previous element
+            terms.erase(it+1,it+2);//erase next element
+          }
+        }
+      }
+      void add_to_fn(Expr arg){
+        fn = expr;
+        expr = expr+"("+arg.expr+")";
+        end = arg.end;
+        if (terms.empty() ==0)
+        throw std::invalid_argument( "Invalid expression, consecutive bracketed expressions" );
+        terms.push_back(arg);
+      }
+      void cast_op(Expr arg){
+        expr = fn+"("+arg.expr+")";
+        end = arg.end;
+        terms.push_back(arg);
+      }
+      void add_to_fn(Expr arg1, Expr arg2){
+        terms.push_back(arg1); terms.push_back(arg2);
+        expr = arg1.expr + fn + arg2.expr;
+        start = arg1.start;
+        end = arg2.end;
+      }
+
 };
 
 
@@ -135,7 +229,7 @@ void disp_content(Expr expr){
 }
 
 int main(){
-  string test_string = "(5/(x-3)) + sin(45*log(2n -2))";
+  string test_string = "-(5/(-x-3)) + sin(8+45*-log(2n -2)^2)";
 
   std::string::iterator end_pos = std::remove(test_string.begin(), test_string.end(), ' ');
   test_string.erase(end_pos, test_string.end());
