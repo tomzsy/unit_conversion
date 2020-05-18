@@ -6,6 +6,8 @@
 #include <algorithm>
 using namespace std;
 
+const string all_operators = "!,+-*/^"
+
 class Expr {
    public:
       string::iterator start;   // start and end of the string
@@ -24,20 +26,16 @@ class Expr {
       void Set(){
         this->search1();
       };
-      bool search1(){
+      void search1(){
         //search for brackets first
         int cur_b_lvl = 0; //current bracket level
-        bool valid = false;
         string::iterator start_loc;
         string::iterator end_loc;
         //cout<<string(start,end)<<"\n";
         for(string::iterator it = start; it!=end; it++){
           if((*it)=='('){
-            if ( cur_b_lvl==0){
-              if (it!=start)
-              terms.push_back(Expr(start,it));
+            if ( cur_b_lvl==0)
               start_loc = it +1;
-            }
             cur_b_lvl++;
           }
           if((*it)==')'){
@@ -49,18 +47,26 @@ class Expr {
               if (end_loc<start_loc)
               throw std::invalid_argument( "empty brackets" );
               terms.push_back(Expr(start_loc,end_loc));
-              if(it!=end-1){
-                terms.push_back(Expr(it+1,end));
-              }
-              valid = true;
-              break;
             }
             cur_b_lvl--;
           }
         }
-        return valid;
       };
 
+      bool search2(){
+        //search for term term
+        string::iterator it = start
+        vector<Expr>::iterator it_vec = this->terms.begin();
+        bool is_term =false;
+        string::iterator it_term ;
+        for(; it!= end;){
+          if(it == it_vec->start-1){
+            //we are at the bracket (
+
+          }
+        }
+        all_operators.find()
+      }
 };
 
 
