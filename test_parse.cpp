@@ -38,8 +38,8 @@ class Expr {
       void Set(){
         this->search1();
         this->search2();
-        this->search3();
         this->search4("^");
+        this->search3();
         this->search4("*/");
         this->search4("+-");
       };
@@ -143,7 +143,7 @@ class Expr {
       void search3(){
         //search for operators
         int n_op_consecutive = 0;// cannot have 2 operators consecutive
-        string all_operators = "+-*/^";
+        string all_operators = "+-*/";
         std::size_t op_id1;
         std::size_t op_id2;
         std::size_t op_id3;
@@ -216,20 +216,65 @@ class Expr {
 
 
 void disp_content(Expr expr){
-  cout<<"This Content:" <<expr.expr <<"\n";
-  cout<<"This Operator" <<expr.fn <<"\n";
-  cout<<"Sub Contents"<<"\n";
+  //cout<<"This Content:" <<expr.expr <<"\n";
+  //cout<<"This Operator" <<expr.fn <<"\n";
+  //cout<<"Sub Contents"<<"\n";
   if (expr.terms.empty()){
-    cout<<"none\n";
+    cout <<expr.expr <<"\n";
   }
   else{
     for (vector<Expr>::iterator it = expr.terms.begin(); it!=expr.terms.end(); it++)
       disp_content(*it);
+      cout <<expr.expr <<"\n";
   }
 }
 
-int main(){
-  string test_string = "-(5/(-x-3)) + sin(8+45*-log(2n -2)^2)";
+string insert_bracket(string str){
+  //insert brackets for exponential ie abc^+xyz and abc^-xyz to abc^(...)
+  string all_operators = "+-*/^";
+  bool is_exp = false;
+  bool inserted = false;
+  bool finish = false;
+  int b_lvl = 0;
+  for (string::iterator it=  str.begin(); it!=str.end();it++){
+    if (is_exp && ((*it)== '+'|| (*it)=='-') && inserted ==false){
+      //insert bracket there
+      it = str.insert(it,'(')+2;
+      inserted = true;
+      b_lvl = 0;
+    }
+    if((*it)== '('&& inserted)
+    b_lvl++;
+    if((*it)== ')'&& inserted)
+    b_lvl--;
+    if(string::npos != all_operators.find(*it) && inserted && b_lvl == 0){
+      str.insert(it,')');
+      finish = true;
+      break;
+    }//is operator
+    if((*it)== '^')
+    is_exp = true;
+    else
+    is_exp = false;
+  }
+  if (inserted){
+    if(!finish){
+      str.push_back(')');
+    }
+    str =insert_bracket(str);
+  }
+  return str;
+}
+
+int main(int argc, char const *argv[]) {
+  string test_string;
+  if(argc ==1)
+   test_string = "-(5/(-x-3)) + sin(8+45*-log(2n -2)^-2)";
+  else
+   test_string = string(argv[1]);
+
+  test_string = insert_bracket(test_string);
+  cout << test_string<<std::endl;
 
   std::string::iterator end_pos = std::remove(test_string.begin(), test_string.end(), ' ');
   test_string.erase(end_pos, test_string.end());
