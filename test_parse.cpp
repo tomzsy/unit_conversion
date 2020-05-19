@@ -148,9 +148,10 @@ class Expr {
         std::size_t op_id2;
         std::size_t op_id3;
         //search for dual operators like 8*-7
-        for(vector<Expr>::iterator it = terms.begin(); it< terms.end()-2; it++){
+        for(vector<Expr>::iterator it = terms.begin(); it< terms.end()-1; it++){
           op_id1 = all_operators.find(it->fn);
           op_id2 = all_operators.find((it+1)->fn);
+          if (it< terms.end()-2)
           op_id3 = all_operators.find((it+2)->fn);
 
           if (it == terms.begin() && op_id1!= string::npos){
@@ -162,7 +163,7 @@ class Expr {
             terms.erase(it+1,it+2);
             it = it +1;
           }
-          else if(op_id1!= string::npos && op_id2!=string::npos){
+          else if(op_id1!= string::npos && op_id2!=string::npos && it< terms.end()-2){
             //this is an operator
             if(op_id3 != string::npos)
             throw std::invalid_argument( "Invalid expression, consecutive operators" );
@@ -220,6 +221,10 @@ void disp_content(Expr expr){
   //cout<<"This Operator" <<expr.fn <<"\n";
   //cout<<"Sub Contents"<<"\n";
   if (expr.terms.empty()){
+    //cout<< "imhere"<<"\n";
+    //cout<<expr.fn<<"\n";
+    //cout<<expr.start<<"\n";
+    //cout<<expr.end<<"\n";
     cout <<expr.expr <<"\n";
   }
   else{
@@ -282,6 +287,7 @@ int main(int argc, char const *argv[]) {
   cout<< test_string; cout<<"\n";
 
   Expr new_expr(test_string);
+
   disp_content(new_expr);
   return 0;
 
