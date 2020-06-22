@@ -9,7 +9,7 @@
 #include <vector>
 
 
-class Expr {]
+class Expr {
  public:
       int start;   // start and end of the string
       int end;
@@ -158,8 +158,7 @@ class Expr {]
         std::size_t op_id3;
         // search for dual operators like 8*-7
         for (std::vector<Expr>::iterator it = terms.begin();
-          it< terms.en
-          d()-1; it++) {
+          it< terms.end()-1; it++) {
           op_id1 = all_operators.find(it->fn);
           op_id2 = all_operators.find((it+1)->fn);
           if (it< terms.end()-2)
