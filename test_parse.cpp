@@ -11,29 +11,54 @@
 
 class Expr {
  public:
-      Expr Init(std::string input_str) {
+      static Expr Init(std::string input_str) {
         Expr expression = Expr();
         expression.start = 0;
         expression.end = input_str.end()-input_str.begin();
-        expression.expr = input_str
+        expression.expr = input_str;
         expression.Set();
+        return expression;
       }
       bool IsValid() {
         return this->is_valid;
       }
       std::string ErrorMsg() {
-        return this->error_msg;
+        return this->err_msg;
+      }
+
+      void disp_content() {
+        if (this->terms.empty()) {
+          std::cout <<this->expr <<"\n";
+        } else {
+          for (std::vector<Expr>::iterator it = this->terms.begin();
+           it != this->terms.end(); it++)
+            it->disp_content();
+            std::cout <<this->expr <<"\n";
+        }  // else
+      }
+
+      Expr(const Expr &other) {
+        // data members
+        is_valid = other.is_valid;
+        err_msg = other.err_msg;
+        start = other.start;
+        end = other.end;
+        expr = other.expr;
+        fn = other.fn;
+        terms = other.terms;
       }
 
  private:
       Expr() {}  // use Init(str) to construct object
+
       Expr Init(std::string input_expr, int start, int end) {
         // sub expression created from base expression
         Expr expression = Expr();
         expression.start = start;
         expression.end = end;
-        expression.expr = input_str
+        expression.expr = input_expr;
         expression.Set();
+        return expression;
       }
       Expr Init(std::string input_expr, int start, int end, bool is_term) {
         // sub term created from base expression
@@ -44,6 +69,7 @@ class Expr {
         expression.expr = input_expr;
         else
         expression.fn = input_expr;
+        return expression;
       }
 
       void Set() {
@@ -75,13 +101,12 @@ class Expr {
               if (is_term) {
                 // there is a term beforehand
                 term_end = it;
-                Expr new_expr = this->Init(std::string(term_start, term_end),
-                  term_start-expr.begin(), term_end-expr.begin(), true);
-                terms.push_back(new_expr);
+                terms.push_back(this->Init(std::string(term_start, term_end),
+                  term_start-expr.begin(), term_end-expr.begin(), true));
                 is_term = false;
               }
               Expr new_expr = this->Init(std::string(1, *it), it-expr.begin(),
-                it-expr.begin()+1, false)
+                it-expr.begin()+1, false);
               terms.push_back(new_expr);
             }
             break;
@@ -89,9 +114,8 @@ class Expr {
             if (cur_b_lvl == 0 && is_term) {
                 // there is a term beforehand
                 term_end = it;
-                Expr new_expr = this->Init(std::string(term_start, term_end),
-                  term_start-expr.begin(), term_end-expr.begin(), true);
-                terms.push_back(new_expr);
+                terms.push_back(this->Init(std::string(term_start, term_end),
+                  term_start-expr.begin(), term_end-expr.begin(), true));
                 is_term = false;
             }
             break;
@@ -117,9 +141,8 @@ class Expr {
                 this->set_err("empty brackets");
                 return;
               }
-              Expr new_expr = this->Init(std::string(start_loc, end_loc),
-                start_loc-expr.begin()-1, end_loc-expr.begin()+1)
-              terms.push_back();
+              terms.push_back(this->Init(std::string(start_loc, end_loc),
+                start_loc-expr.begin()-1, end_loc-expr.begin()+1));
             }
             cur_b_lvl--;
           }  // end of a bracketed term
@@ -131,9 +154,8 @@ class Expr {
             }
             if (is_term) {
               term_end = it+1;
-              Expr new_expr = this->Init(std::string(term_start, term_end),
-                term_start-expr.begin(), term_end-expr.begin(), true);
-              terms.push_back(new_expr);
+              terms.push_back(this->Init(std::string(term_start, term_end),
+                term_start-expr.begin(), term_end-expr.begin(), true));
               is_term = false;
             }
           }  // at the end of the test_string
@@ -162,11 +184,11 @@ class Expr {
         // group terms
         for (std::vector<Expr>::iterator it = terms.begin();
         it < terms.end()-1; it++) {
-          if (it->fn.compare("()") == 0 && (it+1)->fn.compare("()") == 0) {
+          if (it->is_term() && (it+1)->is_term()) {
             it->add_to_fn(*(it+1));
             terms.erase(it+1, it+2);
           }
-          this->search4("");
+          // this->search4("");
         }
       }
 
@@ -187,24 +209,31 @@ class Expr {
 
           if (it == terms.begin() && op_id1!= std::string::npos) {
             if (all_operators.at(op_id1) !='+'
-            && all_operators.at(op_id1) !='-' )
-            throw std::invalid_argument("Invalid starting operator");
-            if (op_id2 != std::string::npos)
-            throw std::invalid_argument("Cannot start with two operators");
+            && all_operators.at(op_id1) !='-' ) {
+              // starting operator such as */^ are not allowed
+              this->set_err("Invalid starting operator");
+              return;
+            }
+            if (op_id2 != std::string::npos) {
+              // a term cannot start with two operators
+              this->set_err("Cannot start with two operators");
+              return;
+            }
             (it)->cast_op(*(it+1));
             terms.erase(it+1, it+2);
             it = it +1;
           } else if (op_id1 != std::string::npos &&
-            op_id2 !=
-            std::string::npos && it< terms.end()-2) {
+            op_id2 != std::string::npos && it< terms.end()-2) {
             // this is an operator
-            if (op_id3 != std::string::npos)
-              throw std::invalid_argument(
-                "Invalid expression, consecutive operators");
+            if (op_id3 != std::string::npos) {
+              this->set_err("Invalid expression, consecutive operators");
+              return;
+            }
             if (all_operators.at(op_id2) !='+'
               && all_operators.at(op_id2) !='-' ) {
-              throw std::invalid_argument(
-                "Invalid expression, invalid consecutive operators");
+                this->set_err(
+                  "Invalid expression, invalid consecutive operators");
+                return;
             }
             (it+1)->cast_op(*(it+2));
             terms.erase(it+2, it+3);
@@ -231,9 +260,11 @@ class Expr {
         fn = expr;
         expr = expr+"("+arg.expr+")";
         end = arg.end;
-        if (terms.empty() == 0)
-        throw std::invalid_argument(
-          "Invalid expression, consecutive bracketed expressions");
+        if (terms.empty() == 0) {
+          this->set_err(
+            "Invalid expression, consecutive bracketed expressions");
+            return;
+        }
         terms.push_back(arg);
       }
       void cast_op(Expr arg) {
@@ -252,36 +283,20 @@ class Expr {
         this->err_msg = msg;
       }
       bool is_term() {
-        
+        return this->fn.compare("()") == 0;
       }
 
       // data members
       bool is_valid = true;
-      string err_msg = "";
-      int start;   // start and end of the string
-      int end;
-      std::string expr;
+      std::string err_msg = "";
+      int start = 0;   // start and end of the string
+      int end = 0;
+      std::string expr = "";
       std::string fn ="()";  // default type is a term
       std::vector<Expr> terms;  // list of terms in this term
 };
 
-void disp_content(Expr expr) {
-  // cout<<"This Content:" <<expr.expr <<"\n";
-  // cout<<"This Operator" <<expr.fn <<"\n";
-  // cout<<"Sub Contents"<<"\n";
-  if (expr.terms.empty()) {
-    // cout<< "imhere"<<"\n";
-    // cout<<expr.fn<<"\n";
-    // cout<<expr.start<<"\n";
-    // cout<<expr.end<<"\n";
-    std::cout <<expr.expr <<"\n";
-  } else {
-    for (std::vector<Expr>::iterator it = expr.terms.begin();
-     it != expr.terms.end(); it++)
-      disp_content(*it);
-      std::cout <<expr.expr <<"\n";
-  }  // else
-}
+
 
 std::string insert_bracket(std::string str) {
   // insert brackets for exponential ie abc^+xyz and abc^-xyz to abc^(...)
@@ -337,8 +352,8 @@ int main(int argc, char const *argv[]) {
 
   std::cout << test_string << "\n";
 
-  Expr new_expr(test_string);
+  Expr new_expr = Expr::Init(test_string);
 
-  disp_content(new_expr);
+  new_expr.disp_content();
   return 0;
 }
