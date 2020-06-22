@@ -11,32 +11,41 @@
 
 class Expr {
  public:
-      int start;   // start and end of the string
-      int end;
-      std::string expr;
-      std::string fn ="()";  // default type is a term
-      std::vector<Expr> terms;  // list of terms in this term
-      // constructors
-      explicit Expr(std::string input_expr):expr(input_expr) {
-        start = 0;
-        end = expr.end()-expr.begin();
-        this->Set();
-      }  // root expression
-      Expr(std::string input_expr,
-        int start, int end):  //  bracket sub-expression
-      expr(input_expr), start(start), end(end) {
-        this->Set();
+      Expr Init(std::string input_str) {
+        Expr expression = Expr();
+        expression.start = 0;
+        expression.end = input_str.end()-input_str.begin();
+        expression.expr = input_str
+        expression.Set();
       }
-      Expr(std::string input_expr, int start, int end, bool is_term):
-      start(start), end(end) {
-        if (is_term)
-        expr = input_expr;
-        else
-        fn = input_expr;
-      }  // No need to set, is only a single term or a operator
+      bool IsValid() {
+        return this->is_valid;
+      }
+      std::string ErrorMsg() {
+        return this->error_msg;
+      }
 
-      // methods
  private:
+      Expr() {}  // use Init(str) to construct object
+      Expr Init(std::string input_expr, int start, int end) {
+        // sub expression created from base expression
+        Expr expression = Expr();
+        expression.start = start;
+        expression.end = end;
+        expression.expr = input_str
+        expression.Set();
+      }
+      Expr Init(std::string input_expr, int start, int end, bool is_term) {
+        // sub term created from base expression
+        Expr expression = Expr();
+        expression.start = start;
+        expression.end = end;
+        if (is_term)
+        expression.expr = input_expr;
+        else
+        expression.fn = input_expr;
+      }
+
       void Set() {
         this->search1();
         this->search2();
@@ -55,97 +64,109 @@ class Expr {
         std::string::iterator term_end;
         for (std::string::iterator it = expr.begin(); it != expr.end(); it++) {
           switch (*it) {
-            case ')':
-            break;
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-            case '^':
+          case ')':
+          break;
+          case '+':
+          case '-':
+          case '*':
+          case '/':
+          case '^':
             if (cur_b_lvl == 0) {
               if (is_term) {
                 // there is a term beforehand
                 term_end = it;
-                terms.push_back(Expr(std::string(term_start, term_end),
-                  term_start-expr.begin(), term_end-expr.begin(), true));
+                Expr new_expr = this->Init(std::string(term_start, term_end),
+                  term_start-expr.begin(), term_end-expr.begin(), true);
+                terms.push_back(new_expr);
                 is_term = false;
               }
-              terms.push_back(Expr(std::string(1, *it), it-expr.begin(),
-                it-expr.begin()+1, false));
+              Expr new_expr = this->Init(std::string(1, *it), it-expr.begin(),
+                it-expr.begin()+1, false)
+              terms.push_back(new_expr);
             }
             break;
-            case '(':
-            if (cur_b_lvl == 0&& is_term) {
+          case '(':
+            if (cur_b_lvl == 0 && is_term) {
                 // there is a term beforehand
                 term_end = it;
-                terms.push_back(Expr(std::string(term_start, term_end),
-                  term_start-expr.begin(), term_end-expr.begin(), true));
+                Expr new_expr = this->Init(std::string(term_start, term_end),
+                  term_start-expr.begin(), term_end-expr.begin(), true);
+                terms.push_back(new_expr);
                 is_term = false;
             }
             break;
-            default:
+          default:
             if (cur_b_lvl == 0 && is_term == false) {
             is_term = true;
             term_start = it;
             }
-          }
-          if ((*it) == '(') {
+          }  // switch
+          if ((*it) == '(') {  // start of a bracketed term
             if (cur_b_lvl == 0)
               start_loc = it +1;
             cur_b_lvl++;
           }
-          if ((*it) == ')') {
+          if ((*it) == ')') {  // end of a bracketed term
             if (cur_b_lvl <1) {
-              throw std::invalid_argument("unbalanced brackets");
+              this->set_err("unbalanced brackets");
+              return;
             }
             if (cur_b_lvl ==1) {
               end_loc = it;
-              if (end_loc < start_loc)
-              throw std::invalid_argument("empty brackets");
-              terms.push_back(Expr(std::string(start_loc, end_loc),
-                start_loc-expr.begin()-1, end_loc-expr.begin()+1));
+              if (end_loc < start_loc) {
+                this->set_err("empty brackets");
+                return;
+              }
+              Expr new_expr = this->Init(std::string(start_loc, end_loc),
+                start_loc-expr.begin()-1, end_loc-expr.begin()+1)
+              terms.push_back();
             }
             cur_b_lvl--;
-          }
+          }  // end of a bracketed term
 
-          if (it == expr.end()-1) {
-            // at the end of the test_string
-            if (cur_b_lvl != 0)
-            throw std::invalid_argument("unbalanced brackets");
+          if (it == expr.end()-1) {  // at the end of the test_string
+            if (cur_b_lvl != 0) {
+              this->set_err("unbalanced brackets");
+              return;
+            }
             if (is_term) {
               term_end = it+1;
-              terms.push_back(Expr(std::string(term_start, term_end),
-                term_start-expr.begin(), term_end-expr.begin(), true));
+              Expr new_expr = this->Init(std::string(term_start, term_end),
+                term_start-expr.begin(), term_end-expr.begin(), true);
+              terms.push_back(new_expr);
               is_term = false;
             }
-          }
-        }
-      }  // searching for terms, and create sub expr for brackets
+          }  // at the end of the test_string
+        }  // end of for loop
+      }
 
       void search2() {
-        // search for term term
+        // search for term term, for example, sin(x), "sin" is a term,
+        // and (x) is another term
         bool n_term = false;
-
         // expression validity check
         int n_term_consecutive = 0;
         std::string term_id = "()";
-        for (std::vector<Expr>::iterator it = terms.begin(); it!= terms.end();
-        it++) {
+        for (std::vector<Expr>::iterator it = terms.begin();
+        it!= terms.end(); it++) {
           if (it->fn.compare(term_id) == 0)
             n_term_consecutive++;
           else
             n_term_consecutive = 0;
-          if (n_term_consecutive == 3)
-          throw std::invalid_argument(
-            "Invalid expression, consecutive terms without operator");
-        }
+          if (n_term_consecutive == 3) {
+            this->set_err
+            ("Invalid expression, consecutive terms without operator");
+            return;  // Impossible
+          }
+        }  // End of validity check
         // group terms
         for (std::vector<Expr>::iterator it = terms.begin();
-        it <terms.end()-1; it++) {
+        it < terms.end()-1; it++) {
           if (it->fn.compare("()") == 0 && (it+1)->fn.compare("()") == 0) {
             it->add_to_fn(*(it+1));
             terms.erase(it+1, it+2);
-          }this->search4("");
+          }
+          this->search4("");
         }
       }
 
@@ -226,6 +247,22 @@ class Expr {
         start = arg1.start;
         end = arg2.end;
       }
+      void set_err(std::string msg) {
+        this->is_valid = false;
+        this->err_msg = msg;
+      }
+      bool is_term() {
+        
+      }
+
+      // data members
+      bool is_valid = true;
+      string err_msg = "";
+      int start;   // start and end of the string
+      int end;
+      std::string expr;
+      std::string fn ="()";  // default type is a term
+      std::vector<Expr> terms;  // list of terms in this term
 };
 
 void disp_content(Expr expr) {
