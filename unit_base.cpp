@@ -1,10 +1,9 @@
-#include <iostream>
-using namespace std;
-int main(){
-  cout<<"Test";
+//  Copyright 2020 Tom Zheng
 
+#include <iostream>
+
+int main() {
 }
-class UnitBase (){
+class UnitBase() {
 public:
-  c
 }
