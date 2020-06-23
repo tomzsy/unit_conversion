@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <boost/property_tree/ptree.hpp>
 
 class Expr {
  public:
@@ -73,10 +74,10 @@ class Expr {
       }
 
       void Set() {
-        this->search1();
-        this->search2();
-        this->search4("^");
-        this->search3();
+        this->search1();  // search for terms and brackets
+        this->search2();  // search for two consecutive terms
+        this->search4("^");  // search for ^ operators
+        this->search3();   // search for dual operators like 2/-5
         this->search4("*/");
         this->search4("+-");
       }
